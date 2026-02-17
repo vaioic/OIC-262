@@ -19,4 +19,3 @@ cell_mask = mask == 1
 cell_labels, nlabels = skimage.measure.label(cell_mask, return_num=True)
 
 print(f"nLabels: {nlabels}")
-
