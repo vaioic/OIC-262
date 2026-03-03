@@ -118,6 +118,10 @@ If you encounter any issues with running the code or have any questions, please 
 
 ### Dependencies
 
-This project relies on the following packages:
+This project relies primarily on the following packages:
+
+* xarray v2026.2.0
+* scikit-image v0.26.0
+* scikit-learn v1.8.0
 
 **Note:** For full dependency list, see [requirements.txt](requirements.txt).
