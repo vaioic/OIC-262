@@ -1,4 +1,6 @@
-from pathlib import Path
+import os
+os.environ["OPENBLAS_NUM_THREADS"] = "24"
+from pathlib import Path, PurePath
 from skimage import io, color, measure
 from sklearn import cluster, metrics
 import numpy as np
@@ -27,6 +29,10 @@ def analyze_color(input_directory_and_labels, output_directory):
             image = io.imread(image_file)
             object_labels = io.imread(label_file)
 
+            # Check if start and cell labels exists
+            if not ((1 in object_labels) or (3 in object_labels)):
+                continue
+
             # Get the cell mask and re-label
             cell_labels, nCells = measure.label(object_labels == 1, return_num=True)
 
@@ -37,7 +43,13 @@ def analyze_color(input_directory_and_labels, output_directory):
             # Get the "Start" label (3)
             start_label = measure.label(object_labels == 3)
 
-            # TODO: Handle if forgot annotations
+            # Find dark regions
+            mask_dark_regions = image_lab[..., 0] < 30
+            # plt.subplot(1, 2, 1)
+            # plt.imshow(image)
+            # plt.subplot(1, 2, 2)
+            # plt.imshow(mask_dark_regions)
+            # plt.show()
 
             # Measure the centroid position - this is a dict with keys 'centroid-0' and 'centroid-1'
             start_props = measure.regionprops_table(start_label, properties=['centroid'])
@@ -74,13 +86,18 @@ def analyze_color(input_directory_and_labels, output_directory):
                 labels = kmeans.fit_predict(lab_values)
                 centers = kmeans.cluster_centers_
 
+                # Calculate percentage of dark region vs cell area
+                num_pixels_dark_region = np.count_nonzero(mask_dark_regions[cell_labels == (obj_id + 1)])
+                
+
                 # Generate a dictionary of the measured data and append to list
                 results.append({
                     'image': image_file.stem,
                     'exp_label': input_label,
                     'cell_id': obj_id,
-                    'cell_position': f"M-{cell_position}",
+                    'cell_position': f"M-{cell_position + 1}",
                     'cell_area_pixels': np.count_nonzero(cell_labels == (obj_id + 1)),
+                    'cell_ratio_area_dark': num_pixels_dark_region / np.count_nonzero(cell_labels == (obj_id + 1)),
                     'mean_hue': mean_HSV[0],
                     'mean_saturation': mean_HSV[1],
                     'mean_value': mean_HSV[2],
@@ -108,7 +125,14 @@ def analyze_color(input_directory_and_labels, output_directory):
     #     print(f"{var}: {ds[var].dtype}")
 
     # Save to file
-    ds.to_netcdf(output_directory + "results.nc")
+    if not isinstance(output_directory, PurePath):
+        output_directory = Path(output_directory)
+
+    if not output_directory.is_dir():
+        output_directory.mkdir()
+
+    ds.to_netcdf(output_directory / "results.nc")
+    df.to_csv(output_directory / "results.csv")
 
     # Try reading the data
     # print(ds.sel(exp_label="WT con", cell_position="M-1"))
@@ -116,8 +140,16 @@ def analyze_color(input_directory_and_labels, output_directory):
 
 
 if __name__ == "__main__":
+    main_folder = Path('D:\\Projects\\OIC-262\\data\\single_images')
+
     analyze_color([
-        ['\\\\pn.vai.org\\projects\\burton\\VARI CORE GENERATED DATA\\OIC\\Oocyte glycogen staining\\Data\\lugols 1_20 02112026\\wt con 02112026', 'WT con'],
-        ['\\\\pn.vai.org\\projects\\burton\\VARI CORE GENERATED DATA\\OIC\\Oocyte glycogen staining\\Data\\lugols 1_20 02112026\\daf2 con 1_20 02112026', 'daf2 con'],
-        ['\\\\pn.vai.org\\projects\\burton\\VARI CORE GENERATED DATA\\OIC\\Oocyte glycogen staining\\Data\\lugols 1_20 02112026\\wt starve 02112026', 'WT starve']
-        ], '..\\test')
+        [main_folder / 'daf2 300 02112026_ mislabled as nduf7', 'daf2 300'],
+        # [main_folder / 'daf2 con 1_20 02112026', 'daf2 con'],
+        # [main_folder / 'gsy1 300mM 1_20 02112026', 'gsy1 300'],
+        # [main_folder / 'gsy1 con 02112026', 'gsy1 con'],
+        # [main_folder / 'nduf7 300mM 1_20 02112026', 'nduf7 300'],
+        # [main_folder / 'nudf7 con 02112026', 'nduf7 con'],
+        # [main_folder / 'wt 300mM 02112026', 'wt 300'],
+        # [main_folder / 'wt con 02112026', 'wt con'],
+        # [main_folder / 'wt starve 02112026', 'wt starve']
+        ], '..\\2026-03-03_test')
