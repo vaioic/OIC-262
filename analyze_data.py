@@ -1,7 +1,9 @@
 import xarray as xr
 from matplotlib import pyplot as plt
+import pandas as pd
+import seaborn as sns
 
-ds = xr.open_dataset("..\\processed\\2026-03-03\\2026-03-03results.nc")
+ds = xr.open_dataset("..\\processed\\2026-03-04\\results.nc")
 
 # for coord in ds.coords:
 #     print(f"Coordinate: {coord}")
@@ -9,7 +11,11 @@ ds = xr.open_dataset("..\\processed\\2026-03-03\\2026-03-03results.nc")
 #     print("-" * 20)
 
 df = ds.mean_lightness.to_dataframe()
-df.boxplot(column='mean_lightness', by='exp_label')
+# print(df)
+
+order = ['wt 0h', 'wt 1h', 'wt 6h', 'wt 24h']
+
+sns.boxplot(data=df, y='mean_lightness', x='exp_label', order=order)
 plt.title('Lightness')
 plt.ylabel('Mean Lightness')
 plt.show()

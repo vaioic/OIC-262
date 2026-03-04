@@ -138,12 +138,28 @@ def analyze_color(input_directory_and_labels, output_directory):
     # print(ds.sel(exp_label="WT con", cell_position="M-1"))
     exit()
 
-
 if __name__ == "__main__":
-    main_folder = Path('D:\\Projects\\OIC-262\\data\\single_images')
+    # main_folder = Path('D:\\Projects\\OIC-262\\data\\single_images')
+
+    # analyze_color([
+    #     [main_folder / 'daf2 300 02112026_ mislabled as nduf7', 'daf2 300'],
+    #     # [main_folder / 'daf2 con 1_20 02112026', 'daf2 con'],
+    #     # [main_folder / 'gsy1 300mM 1_20 02112026', 'gsy1 300'],
+    #     # [main_folder / 'gsy1 con 02112026', 'gsy1 con'],
+    #     # [main_folder / 'nduf7 300mM 1_20 02112026', 'nduf7 300'],
+    #     # [main_folder / 'nudf7 con 02112026', 'nduf7 con'],
+    #     # [main_folder / 'wt 300mM 02112026', 'wt 300'],
+    #     # [main_folder / 'wt con 02112026', 'wt con'],
+    #     # [main_folder / 'wt starve 02112026', 'wt starve']
+    #     ], '..\\2026-03-03_test')
+
+    main_folder = Path('D:\\Projects\\OIC-262\\data\\Timecourse_Feb 2026\\lugols 02182026 NaCl timecourse')
 
     analyze_color([
-        [main_folder / 'daf2 300 02112026_ mislabled as nduf7', 'daf2 300'],
+        [main_folder / 'wt 0 hrs', 'wt 0h'],
+        [main_folder / 'wt 1 hr', 'wt 1h'],
+        [main_folder / 'wt 6 hr', 'wt 6h'],
+        [main_folder / 'wt 300 24hr 02182026', 'wt 24h']
         # [main_folder / 'daf2 con 1_20 02112026', 'daf2 con'],
         # [main_folder / 'gsy1 300mM 1_20 02112026', 'gsy1 300'],
         # [main_folder / 'gsy1 con 02112026', 'gsy1 con'],
@@ -152,4 +168,4 @@ if __name__ == "__main__":
         # [main_folder / 'wt 300mM 02112026', 'wt 300'],
         # [main_folder / 'wt con 02112026', 'wt con'],
         # [main_folder / 'wt starve 02112026', 'wt starve']
-        ], '..\\2026-03-03_test')
+        ], '..\\2026-03-04')
