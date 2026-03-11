@@ -28,7 +28,6 @@ plt.ylabel('A* (Red-Green)')
 plt.xlabel('B* (Yellow-Blue)')
 plt.show()
 
-
 # df = ds.mean_lightness.to_dataframe()
 # df.boxplot(column='mean_lightness', by='cell_position')
 # plt.title('Lightness')

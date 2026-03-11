@@ -15,7 +15,6 @@ The analysis relies on both QuPath for annotation and Python for measurement and
 - [Python](https://www.python.org/downloads/) version 3.13.7 or higher
 - [QuPath](https://qupath.github.io/) version 0.6.0 - 0.7.0
 
-
 ### Download code
 
 1. Download or clone the GitHub repository
@@ -86,7 +85,7 @@ If running the code for the first time, you will need to create a Python virtual
    .\venv\Scripts\activate
    ```
 
-2. You can run the code by calling the analyze_color function with the following syntax:
+2. Call ``analyze_color()`` to process images. 
    ```python
    main_folder = Path('D:\\Projects\\OIC-262\\data\\single_images')
 
@@ -97,13 +96,13 @@ If running the code for the first time, you will need to create a Python virtual
         ], '..\\2026-03-03')
    ```
 
-   Each entry should be a list containing the path to the directory containing  the images and labels, as well as a string that describes the experimental condition. The final entry is the path to the output folder.
+   The function takes in a list of paired strings - the first string is the path to the images and the second is a label that is used to group the data for subsequent plotting. The final argument is the path to the output folder.
 
-   As an alternative, you can also edit the lines under ``if __name__ == "__main__":`` to point to the correct directories and labels.
+   As an alternative, you can also edit the lines under ``if __name__ == "__main__":`` to point to the correct directories and labels, then call ``analyze_color()`` without any arguments.
 
 ### Analyzing the data
 
-See [``analyze_data.py``](./analyze_data.py) for an example of a script to analyze the data.
+The resulting data is stored as an xarray in netCDF format and as a CSV file. See [``analyze_data.py``](./analyze_data.py) for an example of a script to analyze the data.
 
 ## Issues
 

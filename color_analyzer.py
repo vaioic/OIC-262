@@ -9,20 +9,22 @@ import pandas as pd
 
 def analyze_color(input_directory_and_labels, output_directory):
 
-    print(input_directory_and_labels)
-
     results = []
 
+    # Process each dataset (folder)
     for input_directory, input_label in input_directory_and_labels:
         
         # Find all cell label files in the input directory. These files are 
         # expected to be saved as PNG files ending in "-labels".
 
+        # Each call of this loop processes all images for a specific experimental condition.
+        
         input_path = Path(input_directory)
 
         if not input_path.exists():
             raise FileNotFoundError(f"No such directory: {input_path}")
         
+        # Process each image
         for label_file in input_path.glob('*-labels.png'):
 
             # Get image file
@@ -67,61 +69,100 @@ def analyze_color(input_directory_and_labels, output_directory):
 
             sorted_indices = np.argsort(cell_distances)
 
-            # Quantify color for each cell
-            pos = 0
-            for obj_id in sorted_indices:
+            # Initialize a dict of lists to store data from this image
+            cell_data = {
+                'cell_label': [],
+                'cell_position': [],
+                'cell_area_pixels': [],
+                'cell_ratio_area_dark': [],
+                'mean_hue': [],
+                'mean_saturation': [],
+                'mean_value': [],
+                'mean_lightness': [],
+                'mean_A': [],
+                'mean_B': [],
+                'kmeans_centroid1_L': [],
+                'kmeans_centroid1_A': [],
+                'kmeans_centroid1_B': [],
+                'kmeans_centroid2_L': [],
+                'kmeans_centroid2_A': [],
+                'kmeans_centroid2_B': [],
+                'centroid_distance': [],
+                'silhouette_score': [],
+                'calinski_harabasz_score': [],
+            }
+            
+            # Process each cell
+            pos = 1
+            for pos, cell_label in enumerate(sorted_indices):
 
-                cell_position = pos
-                pos += 1
+                cell_data['cell_label'].append(cell_label)
+                cell_data['cell_position'].append(f"M-{pos + 1}")
 
                 # Get the HSV values for current cell. Data is N x 3 where N is the pixel
-                hsv_values = image_hsv[cell_labels == (obj_id + 1)]
-                lab_values = image_lab[cell_labels == (obj_id + 1)]
-                # print(hsv_values.shape)
-
-                # Calculate the average H, S, V, L, A, B
+                hsv_values = image_hsv[cell_labels == (cell_label + 1)]
                 mean_HSV = np.mean(hsv_values, axis=0)
+
+                cell_data['mean_hue'].append(mean_HSV[0])
+                cell_data['mean_saturation'].append(mean_HSV[1])
+                cell_data['mean_value'].append(mean_HSV[2])
+
+                lab_values = image_lab[cell_labels == (cell_label + 1)]
                 mean_LAB = np.mean(lab_values, axis=0)
-                # print(mean_HSV)
+                cell_data['mean_lightness'].append(mean_LAB[0])
+                cell_data['mean_A'].append(mean_LAB[1])
+                cell_data['mean_B'].append(mean_LAB[2])
 
                 # Calculate k-means clustering using the LAB color space. Input should be N x 3, where each row is data from a single pixel.
                 kmeans = cluster.KMeans(n_clusters=2, n_init="auto")
                 labels = kmeans.fit_predict(lab_values)
                 centers = kmeans.cluster_centers_
 
-                # Calculate percentage of dark region vs cell area
-                num_pixels_dark_region = np.count_nonzero(mask_dark_regions[cell_labels == (obj_id + 1)])
-                
+                cell_data['kmeans_centroid1_L'].append(centers[0, 0])
+                cell_data['kmeans_centroid1_A'].append(centers[0, 1])
+                cell_data['kmeans_centroid1_B'].append(centers[0, 2])
 
-                # Generate a dictionary of the measured data and append to list
-                results.append({
-                    'image': image_file.stem,
-                    'exp_label': input_label,
-                    'cell_id': obj_id,
-                    'cell_position': f"M-{cell_position + 1}",
-                    'cell_area_pixels': np.count_nonzero(cell_labels == (obj_id + 1)),
-                    'cell_ratio_area_dark': num_pixels_dark_region / np.count_nonzero(cell_labels == (obj_id + 1)),
-                    'mean_hue': mean_HSV[0],
-                    'mean_saturation': mean_HSV[1],
-                    'mean_value': mean_HSV[2],
-                    'mean_lightness': mean_LAB[0],
-                    'mean_A': mean_LAB[1],
-                    'mean_B': mean_LAB[2],
-                    'kmeans_centroid1_L': centers[0, 0],
-                    'kmeans_centroid1_A': centers[0, 1],
-                    'kmeans_centroid1_B': centers[0, 2],
-                    'kmeans_centroid2_L': centers[0, 0],
-                    'kmeans_centroid2_A': centers[0, 1],
-                    'kmeans_centroid2_B': centers[0, 2],
-                    'centroid_distance': np.linalg.norm(centers[0, :] - centers[1, :]),
-                    'silhouette_score': metrics.silhouette_score(lab_values, labels, sample_size=3000),
-                    'Calinski-Harabasz_score': metrics.calinski_harabasz_score(lab_values, labels)
-                })
+                cell_data['kmeans_centroid2_L'].append(centers[0, 0])
+                cell_data['kmeans_centroid2_A'].append(centers[0, 1])
+                cell_data['kmeans_centroid2_B'].append(centers[0, 2])
 
-    # Create a dataset after processing all the datasets
-    df = pd.DataFrame(results)
+                cell_data['centroid_distance'].append(np.linalg.norm(centers[0, :] - centers[1, :]))
 
-    ds = df.set_index(["image", "exp_label", "cell_position"]).to_xarray()
+                cell_data['silhouette_score'].append(metrics.silhouette_score(lab_values, labels, sample_size=3000))
+                cell_data['calinski_harabasz_score'].append(metrics.calinski_harabasz_score(lab_values, labels))
+                   
+                # Calculate percentage of "dark" region vs cell area
+                num_pixels_dark_region = np.count_nonzero(mask_dark_regions[cell_labels == (cell_label + 1)])
+
+                cell_data['cell_area_pixels'].append(np.count_nonzero(cell_labels == (cell_label + 1)))
+                cell_data['cell_ratio_area_dark'].append(num_pixels_dark_region / np.count_nonzero(cell_labels == 
+                (cell_label + 1)))
+
+            # Generate an xarray dataset
+            key_list = ["cell_position"]
+
+            num_cells = len(cell_data["cell_position"])
+
+            curr_ds = xr.Dataset(
+                data_vars={k: (("id"), v) for k, v in cell_data.items() if k not in key_list},
+                coords={
+                    "dataset": ("id", [str(image_file.parent.name)] * num_cells),
+                    "image": ("id", [image_file.stem] * num_cells),
+                    "exp_label": ("id", [input_label] * num_cells),
+                    "cell_position": ("id", cell_data["cell_position"])
+                }
+            )
+
+            # for var in curr_ds.variables:
+            #     print(f"Variable: {var:20} | Dtype: {curr_ds[var].dtype}")
+
+            # exit()
+
+            results.append(curr_ds)
+
+       
+    # Merge the datasets
+    combined_ds = xr.concat(results, dim="id")
 
     # For debugging if you get netCDF issues
     # for var in ds.data_vars:
@@ -132,14 +173,16 @@ def analyze_color(input_directory_and_labels, output_directory):
         output_directory = Path(output_directory)
 
     if not output_directory.is_dir():
-        output_directory.mkdir()
+        output_directory.mkdir(parents=True)
 
-    ds.to_netcdf(output_directory / "results.nc")
-    df.to_csv(output_directory / "results.csv")
+    combined_ds.to_netcdf(output_directory / "results.nc")
+
+    # Convert to DataFrame and save
+    combined_df = combined_ds.to_dataframe()
+    combined_df.to_csv(output_directory / "results.csv")
 
     # Try reading the data
     # print(ds.sel(exp_label="WT con", cell_position="M-1"))
-    exit()
 
 if __name__ == "__main__":
     # main_folder = Path('D:\\Projects\\OIC-262\\data\\single_images')
@@ -156,14 +199,35 @@ if __name__ == "__main__":
     #     # [main_folder / 'wt starve 02112026', 'wt starve']
     #     ], '..\\2026-03-03_test')
 
-    main_folder = Path('D:\\Projects\\OIC-262 Worm\\data\\Timecourse_Feb 2026\\lugols NaCl timecourse 02202026')
+    # main_folder = Path('D:\\Projects\\OIC-262 Worm\\data\\Timecourse_Feb 2026\\lugols NaCl timecourse 02202026')
+
+    # analyze_color([
+    #     [main_folder / 'wt 0 hr 300mM 02202026', 'wt 0h'],
+    #     [main_folder / 'wt 1hr 300mM 02202026', 'wt 1h'],
+    #     [main_folder / 'wt 3 hr 300 02202026', 'wt 3h'],
+    #     [main_folder / 'wt 6 hr 300 02202026', 'wt 6h'],
+    #     [main_folder / 'wt 24 hr 300 02202026', 'wt 24h']
+    #     ], '../processed/2026-03-11c')
+    
+    # main_folder = Path('D:\\Projects\\OIC-262 Worm\\data\\Timecourse_Feb 2026\\lugols NaCl timecourse 02192026')
+
+    # analyze_color([
+    #     [main_folder / 'wt 0 hr 300mM 20192026', 'wt 0h'],
+    #     [main_folder / 'wt 1 hr 300 mM 02192026', 'wt 1h'],
+    #     [main_folder / 'wt 3 hr 300mM 02192026', 'wt 3h'],
+    #     [main_folder / 'wt 6hr 300mM 02192026', 'wt 6h'],
+    #     [main_folder / 'wt 24hr 300m 02192026', 'wt 24h']
+    #     ], '../processed/2026-03-11b lugols NaCl timecourse 02192026')
+    
+    main_folder = Path('D:\\Projects\\OIC-262 Worm\\data\\Timecourse_Feb 2026\\lugols 02182026 NaCl timecourse')
 
     analyze_color([
-        [main_folder / 'wt 0 hr 300mM 02202026', 'wt 0h'],
-        [main_folder / 'wt 1hr 300mM 02202026', 'wt 1h'],
-        [main_folder / 'wt 3 hr 300 02202026', 'wt 3h'],
-        [main_folder / 'wt 6 hr 300 02202026', 'wt 6h'],
-        [main_folder / 'wt 24 hr 300 02202026', 'wt 24h']
+        [main_folder / 'wt 0 hrs', 'wt 0h'],
+        [main_folder / 'wt 1 hr', 'wt 1h'],
+        [main_folder / 'wt 6 hr', 'wt 6h'],
+        [main_folder / 'wt 300 24hr 02182026', 'wt 24h']
+        ], '../processed/lugols 02182026 NaCl timecourse')
+    
         # [main_folder / 'gsy1 300mM 1_20 02112026', 'gsy1 300'],
         # [main_folder / 'gsy1 con 02112026', 'gsy1 con'],
         # [main_folder / 'nduf7 300mM 1_20 02112026', 'nduf7 300'],
@@ -171,4 +235,4 @@ if __name__ == "__main__":
         # [main_folder / 'wt 300mM 02112026', 'wt 300'],
         # [main_folder / 'wt con 02112026', 'wt con'],
         # [main_folder / 'wt starve 02112026', 'wt starve']
-        ], '..\\2026-03-11b')
+    
