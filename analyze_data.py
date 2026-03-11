@@ -3,12 +3,14 @@ from matplotlib import pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-ds = xr.open_dataset("..\\processed\\2026-03-04\\results.nc")
+ds = xr.open_dataset("..\\processed\\2026-03-04 lugols 02182026 NaCl timecourse\\results.nc")
 
 # for coord in ds.coords:
 #     print(f"Coordinate: {coord}")
 #     print(ds[coord].values)
 #     print("-" * 20)
+
+# Combine the datasets while keeping their sources separate
 
 df = ds.mean_lightness.to_dataframe()
 # print(df)

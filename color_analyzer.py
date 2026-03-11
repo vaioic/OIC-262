@@ -14,11 +14,14 @@ def analyze_color(input_directory_and_labels, output_directory):
     results = []
 
     for input_directory, input_label in input_directory_and_labels:
-
+        
         # Find all cell label files in the input directory. These files are 
         # expected to be saved as PNG files ending in "-labels".
 
-        input_path = Path(input_directory)        
+        input_path = Path(input_directory)
+
+        if not input_path.exists():
+            raise FileNotFoundError(f"No such directory: {input_path}")
         
         for label_file in input_path.glob('*-labels.png'):
 
@@ -153,14 +156,14 @@ if __name__ == "__main__":
     #     # [main_folder / 'wt starve 02112026', 'wt starve']
     #     ], '..\\2026-03-03_test')
 
-    main_folder = Path('D:\\Projects\\OIC-262\\data\\Timecourse_Feb 2026\\lugols 02182026 NaCl timecourse')
+    main_folder = Path('D:\\Projects\\OIC-262 Worm\\data\\Timecourse_Feb 2026\\lugols NaCl timecourse 02202026')
 
     analyze_color([
-        [main_folder / 'wt 0 hrs', 'wt 0h'],
-        [main_folder / 'wt 1 hr', 'wt 1h'],
-        [main_folder / 'wt 6 hr', 'wt 6h'],
-        [main_folder / 'wt 300 24hr 02182026', 'wt 24h']
-        # [main_folder / 'daf2 con 1_20 02112026', 'daf2 con'],
+        [main_folder / 'wt 0 hr 300mM 02202026', 'wt 0h'],
+        [main_folder / 'wt 1hr 300mM 02202026', 'wt 1h'],
+        [main_folder / 'wt 3 hr 300 02202026', 'wt 3h'],
+        [main_folder / 'wt 6 hr 300 02202026', 'wt 6h'],
+        [main_folder / 'wt 24 hr 300 02202026', 'wt 24h']
         # [main_folder / 'gsy1 300mM 1_20 02112026', 'gsy1 300'],
         # [main_folder / 'gsy1 con 02112026', 'gsy1 con'],
         # [main_folder / 'nduf7 300mM 1_20 02112026', 'nduf7 300'],
@@ -168,4 +171,4 @@ if __name__ == "__main__":
         # [main_folder / 'wt 300mM 02112026', 'wt 300'],
         # [main_folder / 'wt con 02112026', 'wt con'],
         # [main_folder / 'wt starve 02112026', 'wt starve']
-        ], '..\\2026-03-04')
+        ], '..\\2026-03-11b')
