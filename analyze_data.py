@@ -1,3 +1,7 @@
+'''
+This script analyzes the original single image datasets
+'''
+
 import xarray as xr
 from matplotlib import pyplot as plt
 import pandas as pd

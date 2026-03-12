@@ -1,3 +1,7 @@
+'''
+This script analyzes the data for the timecourse dataset.
+'''
+
 import xarray as xr
 from matplotlib import pyplot as plt
 import pandas as pd

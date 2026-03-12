@@ -219,14 +219,14 @@ if __name__ == "__main__":
     #     [main_folder / 'wt 24hr 300m 02192026', 'wt 24h']
     #     ], '../processed/2026-03-11b lugols NaCl timecourse 02192026')
     
-    main_folder = Path('D:\\Projects\\OIC-262 Worm\\data\\Timecourse_Feb 2026\\lugols 02182026 NaCl timecourse')
+    # main_folder = Path('D:\\Projects\\OIC-262 Worm\\data\\Timecourse_Feb 2026\\lugols 02182026 NaCl timecourse')
 
-    analyze_color([
-        [main_folder / 'wt 0 hrs', 'wt 0h'],
-        [main_folder / 'wt 1 hr', 'wt 1h'],
-        [main_folder / 'wt 6 hr', 'wt 6h'],
-        [main_folder / 'wt 300 24hr 02182026', 'wt 24h']
-        ], '../processed/lugols 02182026 NaCl timecourse')
+    # analyze_color([
+    #     [main_folder / 'wt 0 hrs', 'wt 0h'],
+    #     [main_folder / 'wt 1 hr', 'wt 1h'],
+    #     [main_folder / 'wt 6 hr', 'wt 6h'],
+    #     [main_folder / 'wt 300 24hr 02182026', 'wt 24h']
+    #     ], '../processed/lugols 02182026 NaCl timecourse')
     
         # [main_folder / 'gsy1 300mM 1_20 02112026', 'gsy1 300'],
         # [main_folder / 'gsy1 con 02112026', 'gsy1 con'],
@@ -235,4 +235,29 @@ if __name__ == "__main__":
         # [main_folder / 'wt 300mM 02112026', 'wt 300'],
         # [main_folder / 'wt con 02112026', 'wt con'],
         # [main_folder / 'wt starve 02112026', 'wt starve']
-    
+
+    # main_folder = Path(r'D:\Projects\OIC-262 Worm\data\Germline RNAi\20feb26')
+
+    # analyze_color([
+    #     [main_folder / 'ctrl RNAi', 'ctrl'],
+    #     [main_folder / 'ctrl rnai 300', 'ctrl 300'],
+    #     [main_folder / 'gsy-1 rnai', 'gsy-1'],
+    #     [main_folder / 'gsy-1 rnai 300', 'gsy-1 300'],
+    #     [main_folder / 'mpk-1 rnai', 'mpk-1'],
+    #     [main_folder / 'mpk-1 rnai 300', 'mpk-1 300'],
+    #     [main_folder / 'pygl-1 rnai', 'pygl-1'],
+    #     [main_folder / 'pygl-1 rnai 300', 'pygl-1 300']
+    #     ], '../processed/2026-03-12 Germline RNAi/20feb26')
+
+    main_folder = Path(r'D:\Projects\OIC-262 Worm\data\Germline RNAi\lugols 02142026 1_20')
+
+    analyze_color([
+        [main_folder / 'EV RNAi', 'ctrl'],
+        [main_folder / 'EV RNAi 300', 'ctrl 300'],
+        [main_folder / 'gsy1 RNAi', 'gsy-1'],
+        [main_folder / 'gsy1 RNAi 300', 'gsy-1 300'],
+        [main_folder / 'pygl1 rnai', 'pygl-1'],
+        [main_folder / 'pygl1 rnai 300', 'pygl-1 300']
+        ], '../processed/2026-03-12 Germline RNAi/lugols 02142026 1_20')
+
+
