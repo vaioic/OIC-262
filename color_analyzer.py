@@ -7,7 +7,7 @@ import numpy as np
 import xarray as xr
 import pandas as pd
 
-def analyze_color(input_directory_and_labels, output_directory):
+def analyze_color(input_directory_and_labels, output_directory, image_directory=None):
 
     results = []
 
@@ -27,8 +27,24 @@ def analyze_color(input_directory_and_labels, output_directory):
         # Process each image
         for label_file in input_path.glob('*-labels.png'):
 
+            print(f"Processing file: {label_file}")
+
             # Get image file
-            image_file = input_path / (label_file.stem[:-7] + '.tif')
+            if image_directory is None:
+                image_file = input_path / (label_file.stem[:-7] + '.tif')
+
+            else:
+                image_directory = Path(image_directory)
+
+                image_file = image_directory / label_file.parent.parent.name / (label_file.stem[:-7] + '.tif')
+            
+            if not image_file.exists():
+                print(f"Trying jpg name")
+                # Try
+                image_file = image_file.parent / (label_file.stem[:-7] + '.jpg')
+                if not image_file.exists():
+                    print(f"Could not find image file. Skipping")
+                    continue
 
             # Read in the image and object labels
             image = io.imread(image_file)
@@ -36,6 +52,7 @@ def analyze_color(input_directory_and_labels, output_directory):
 
             # Check if start and cell labels exists
             if not ((1 in object_labels) or (3 in object_labels)):
+                print("Skipped")
                 continue
 
             # Get the cell mask and re-label
@@ -58,7 +75,13 @@ def analyze_color(input_directory_and_labels, output_directory):
 
             # Measure the centroid position - this is a dict with keys 'centroid-0' and 'centroid-1'
             start_props = measure.regionprops_table(start_label, properties=['centroid'])
-            print(label_file, start_props)
+
+            if len(start_props['centroid-0']) == 0:
+                print("No objects found. Skipping.")
+                continue
+
+
+            
             start_centroid = np.array([[start_props['centroid-0'][0], start_props['centroid-1'][0]]])
             
             # {'centroid-0': array([1555.60535021, 2918.63291515]), 'centroid-1': array([1497.46124521, 1551.34955156])}
@@ -249,15 +272,77 @@ if __name__ == "__main__":
     #     [main_folder / 'pygl-1 rnai 300', 'pygl-1 300']
     #     ], '../processed/2026-03-12 Germline RNAi/20feb26')
 
-    main_folder = Path(r'D:\Projects\OIC-262 Worm\data\Germline RNAi\lugols 02142026 1_20')
+    # main_folder = Path(r'D:\Projects\OIC-262 Worm\data\Germline RNAi\lugols 02142026 1_20')
+
+    # analyze_color([
+    #     [main_folder / 'EV RNAi', 'ctrl'],
+    #     [main_folder / 'EV RNAi 300', 'ctrl 300'],
+    #     [main_folder / 'gsy1 RNAi', 'gsy-1'],
+    #     [main_folder / 'gsy1 RNAi 300', 'gsy-1 300'],
+    #     [main_folder / 'pygl1 rnai', 'pygl-1'],
+    #     [main_folder / 'pygl1 rnai 300', 'pygl-1 300']
+    #     ], '../processed/2026-03-12 Germline RNAi/lugols 02142026 1_20')
+
+    # main_folder = Path(r'D:\Projects\OIC-262 Worm\QuPath projects\wt vs flcn-1\lugols 17 feb 26 flcn fzo1')
+
+    # analyze_color([
+    #     [main_folder / 'flcn-1' / 'export', 'flcn-1'],
+    #     [main_folder / 'flcn-1 300 mm nacl' / 'export', 'flcn-1 300'],
+    #     [main_folder / 'fzo-1' / 'export', 'fzo-1'],
+    #     [main_folder / 'fzo-1 300 mm nacl' / 'export', 'flcn-1 300'],
+    #     [main_folder / 'wt' / 'export', 'wt'],
+    #     [main_folder / 'wt 300' / 'export', 'wt 300']
+    #     ], r'../processed/2026-04-20 wt vs flcn-1/lugols 17 feb 26 flcn fzo1',
+    #     image_directory=r'\\pn.vai.org\projects\burton\VARI CORE GENERATED DATA\OIC\Oocyte glycogen staining\Data\wt vs flcn-1\lugols 17 feb 26 flcn fzo1')
+
+    # main_folder = Path(r'D:\Projects\OIC-262 Worm\QuPath projects\wt vs flcn-1\lugols 02112026 1_20 with m9')
+
+    # analyze_color([
+    #     [main_folder / 'FLCN-1' / 'export', 'flcn-1'],
+    #     [main_folder / 'FLCN-1 300' / 'export', 'flcn-1 300'],
+    #     [main_folder / 'FZO-1' / 'export', 'fzo-1'],
+    #     [main_folder / 'FZO-1 300' / 'export', 'flcn-1 300'],
+    #     [main_folder / 'WT' / 'export', 'wt'],
+    #     [main_folder / 'WT 300' / 'export', 'wt 300']
+    #     ], r'../processed/2026-04-20 wt vs flcn-1/lugols 17 feb 26 flcn fzo1',
+    #     image_directory=r'\\pn.vai.org\projects\burton\VARI CORE GENERATED DATA\OIC\Oocyte glycogen staining\Data\wt vs flcn-1\lugols 02112026 1_20 with m9')
+    
+    # main_folder = Path(r'D:\Projects\OIC-262 Worm\QuPath projects\wt vs etc mutants\lugols 02132026 1_20')
+
+    # analyze_color([
+    #     [main_folder / 'germline isp-1 300' / 'export', 'germline isp-1 300'],
+    #     [main_folder / 'gsy1' / 'export', 'gsy-1'],
+    #     [main_folder / 'isp1' / 'export', 'isp-1'],
+    #     [main_folder / 'isp1 germline' / 'export', 'germline isp-1'],
+    #     [main_folder / 'nduf7' / 'export', 'nduf7'],
+    #     [main_folder / 'nduf7 300' / 'export', 'nduf7 300'],
+    #     [main_folder / 'wt 300' / 'export', 'wt 300'],
+    #     [main_folder / 'wt con 02132026' / 'export', 'wt']
+    #     ], r'../processed/2026-04-20 wt vs etc mutants/lugols 02132026 1_20',
+    #     image_directory=r'\\pn.vai.org\projects\burton\VARI CORE GENERATED DATA\OIC\Oocyte glycogen staining\Data\wt vs etc mutants\lugols 02132026 1_20')
+    
+    # main_folder = Path(r'D:\Projects\OIC-262 Worm\QuPath projects\wt vs etc mutants\lugols 02172026')
+
+    # analyze_color([
+    #     [main_folder / 'isp 300mM 02172026' / 'export', 'isp 300'],
+    #     [main_folder / 'isp con 02172026' / 'export', 'isp'],
+    #     [main_folder / 'isp1 germline  300 mm 02172026' / 'export', 'germline isp-1 300'],
+    #     [main_folder / 'isp1 germline con 02172026' / 'export', 'germline isp-1'],
+    #     [main_folder / 'nduf7 300 02172026' / 'export', 'nduf7 300'],
+    #     [main_folder / 'nduf7 con 02172026' / 'export', 'nduf7'],
+    #     [main_folder / 'wt 300mM 02172026' / 'export', 'wt 300'],
+    #     [main_folder / 'wt con 02172026' / 'export', 'wt']
+    #     ], r'../processed/2026-04-20 wt vs etc mutants/lugols 02172026',
+    #     image_directory=r'\\pn.vai.org\projects\burton\VARI CORE GENERATED DATA\OIC\Oocyte glycogen staining\Data\wt vs etc mutants\lugols 02172026')
+    
+    main_folder = Path(r'D:\Projects\OIC-262 Worm\QuPath projects\Germline RNAi 3rd repeat')
 
     analyze_color([
-        [main_folder / 'EV RNAi', 'ctrl'],
-        [main_folder / 'EV RNAi 300', 'ctrl 300'],
-        [main_folder / 'gsy1 RNAi', 'gsy-1'],
-        [main_folder / 'gsy1 RNAi 300', 'gsy-1 300'],
-        [main_folder / 'pygl1 rnai', 'pygl-1'],
-        [main_folder / 'pygl1 rnai 300', 'pygl-1 300']
-        ], '../processed/2026-03-12 Germline RNAi/lugols 02142026 1_20')
-
-
+        [main_folder / 'ctrl RNAi' / 'export', 'ctrl RNAi'],
+        [main_folder / 'ctrl RNAi 300' / 'export', 'ctrl RNAi 300'],
+        [main_folder / 'gsy-1 RNAi' / 'export', 'gsy-1 RNAi'],
+        [main_folder / 'gsy-1 RNAi 300' / 'export', 'gsy-1 RNAi 300'],
+        [main_folder / 'pygl-1 RNAi' / 'export', 'pygl-1 RNAi'],
+        [main_folder / 'pygl-1 RNAi 300' / 'export', 'pygl-1 RNAi 300']
+        ], r'../processed/2026-04-20 Germline RNAi 3rd repeat',
+        image_directory=r'\\pn.vai.org\projects\burton\VARI CORE GENERATED DATA\OIC\Oocyte glycogen staining\Data\Germline RNAi 3rd repeat')
