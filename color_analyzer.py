@@ -307,19 +307,20 @@ if __name__ == "__main__":
     #     ], r'../processed/2026-04-20 wt vs flcn-1/lugols 17 feb 26 flcn fzo1',
     #     image_directory=r'\\pn.vai.org\projects\burton\VARI CORE GENERATED DATA\OIC\Oocyte glycogen staining\Data\wt vs flcn-1\lugols 02112026 1_20 with m9')
     
-    # main_folder = Path(r'D:\Projects\OIC-262 Worm\QuPath projects\wt vs etc mutants\lugols 02132026 1_20')
+    main_folder = Path(r'D:\Projects\OIC-262 Worm\QuPath projects\wt vs etc mutants\lugols 02132026 1_20')
 
-    # analyze_color([
-    #     [main_folder / 'germline isp-1 300' / 'export', 'germline isp-1 300'],
-    #     [main_folder / 'gsy1' / 'export', 'gsy-1'],
-    #     [main_folder / 'isp1' / 'export', 'isp-1'],
-    #     [main_folder / 'isp1 germline' / 'export', 'germline isp-1'],
-    #     [main_folder / 'nduf7' / 'export', 'nduf7'],
-    #     [main_folder / 'nduf7 300' / 'export', 'nduf7 300'],
-    #     [main_folder / 'wt 300' / 'export', 'wt 300'],
-    #     [main_folder / 'wt con 02132026' / 'export', 'wt']
-    #     ], r'../processed/2026-04-20 wt vs etc mutants/lugols 02132026 1_20',
-    #     image_directory=r'\\pn.vai.org\projects\burton\VARI CORE GENERATED DATA\OIC\Oocyte glycogen staining\Data\wt vs etc mutants\lugols 02132026 1_20')
+    analyze_color([
+        [main_folder / 'germline isp-1 300' / 'export', 'germline isp-1 300'],
+        [main_folder / 'gsy1' / 'export', 'gsy-1'],
+        [main_folder / 'isp1' / 'export', 'isp-1'],
+        [main_folder / 'isp-1 300' / 'export', 'isp-1 300'],
+        [main_folder / 'isp1 germline' / 'export', 'germline isp-1'],
+        [main_folder / 'nduf7' / 'export', 'nduf7'],
+        [main_folder / 'nduf7 300' / 'export', 'nduf7 300'],
+        [main_folder / 'wt 300' / 'export', 'wt 300'],
+        [main_folder / 'wt con 02132026' / 'export', 'wt']
+        ], r'../processed/2026-04-20 wt vs etc mutants/lugols 02132026 1_20',
+        image_directory=r'\\pn.vai.org\projects\burton\VARI CORE GENERATED DATA\OIC\Oocyte glycogen staining\Data\wt vs etc mutants\lugols 02132026 1_20')
     
     # main_folder = Path(r'D:\Projects\OIC-262 Worm\QuPath projects\wt vs etc mutants\lugols 02172026')
 
@@ -335,14 +336,14 @@ if __name__ == "__main__":
     #     ], r'../processed/2026-04-20 wt vs etc mutants/lugols 02172026',
     #     image_directory=r'\\pn.vai.org\projects\burton\VARI CORE GENERATED DATA\OIC\Oocyte glycogen staining\Data\wt vs etc mutants\lugols 02172026')
     
-    main_folder = Path(r'D:\Projects\OIC-262 Worm\QuPath projects\Germline RNAi 3rd repeat')
+    # main_folder = Path(r'D:\Projects\OIC-262 Worm\QuPath projects\Germline RNAi 3rd repeat')
 
-    analyze_color([
-        [main_folder / 'ctrl RNAi' / 'export', 'ctrl RNAi'],
-        [main_folder / 'ctrl RNAi 300' / 'export', 'ctrl RNAi 300'],
-        [main_folder / 'gsy-1 RNAi' / 'export', 'gsy-1 RNAi'],
-        [main_folder / 'gsy-1 RNAi 300' / 'export', 'gsy-1 RNAi 300'],
-        [main_folder / 'pygl-1 RNAi' / 'export', 'pygl-1 RNAi'],
-        [main_folder / 'pygl-1 RNAi 300' / 'export', 'pygl-1 RNAi 300']
-        ], r'../processed/2026-04-20 Germline RNAi 3rd repeat',
-        image_directory=r'\\pn.vai.org\projects\burton\VARI CORE GENERATED DATA\OIC\Oocyte glycogen staining\Data\Germline RNAi 3rd repeat')
+    # analyze_color([
+    #     [main_folder / 'ctrl RNAi' / 'export', 'ctrl RNAi'],
+    #     [main_folder / 'ctrl RNAi 300' / 'export', 'ctrl RNAi 300'],
+    #     [main_folder / 'gsy-1 RNAi' / 'export', 'gsy-1 RNAi'],
+    #     [main_folder / 'gsy-1 RNAi 300' / 'export', 'gsy-1 RNAi 300'],
+    #     [main_folder / 'pygl-1 RNAi' / 'export', 'pygl-1 RNAi'],
+    #     [main_folder / 'pygl-1 RNAi 300' / 'export', 'pygl-1 RNAi 300']
+    #     ], r'../processed/2026-04-20 Germline RNAi 3rd repeat',
+    #     image_directory=r'\\pn.vai.org\projects\burton\VARI CORE GENERATED DATA\OIC\Oocyte glycogen staining\Data\Germline RNAi 3rd repeat')
