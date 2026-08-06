@@ -102,7 +102,7 @@ This project uses [uv](https://docs.astral.sh/uv/) to manage virtual environment
 
 4. Run the analysis
    ```bash
-   uv run analysis/analysis_script.py
+   uv run analysis/20260806_Dataset02_Run01.py
    ```
 
 #### Using venv and pip
@@ -134,10 +134,10 @@ This project uses [uv](https://docs.astral.sh/uv/) to manage virtual environment
 
 5. Run the analysis script
    ```bash
-   python -m analysis.analysis_script
+   python -m analysis.20260806_Dataset02_Run01
 
    # or
-   python analysis/analysis_script.py
+   python analysis/20260806_Dataset02_Run01.py
    ```
 
 ## Issues
@@ -174,7 +174,9 @@ Please review the Acknowledgement and Authorship Guidelines on [VAI's Core Techn
 ## v1.0.0 (2026-08-06)
 * Updated the code to match latest standards
 * Moved the quantification code into the ``shared`` folder
-* Added analysis scripts for June 2026 dataset ([OIC-263](https://varioic.atlassian.net/browse/OIC-263))
+* Added analysis scripts for June 2026 dataset
+  ([OIC-263](https://varioic.atlassian.net/browse/OIC-263))
+* Changed the input to accept a more 
 
 ### v0.2.0 (2026-06-15)
 * Merged the oocyte and embryo analysis code

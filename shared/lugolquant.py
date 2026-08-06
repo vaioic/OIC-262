@@ -21,15 +21,73 @@ import os
 import re
 from pathlib import Path
 
+os.environ["OPENBLAS_NUM_THREADS"] = "24"
+
+from warnings import deprecated
+
 import numpy as np
 import xarray as xr
 from skimage import color, io, measure
 from sklearn import cluster, metrics
 from tqdm import tqdm
 
-os.environ["OPENBLAS_NUM_THREADS"] = "24"
+
+def process_directory(base_input_path, base_output_path):
+    """
+    Process images in a directory.
+
+    The output of the function will return a single CSV-file with all measurements.
+
+    Parameters
+    ----------
+    base_input_path : str or Path
+        Path to the top-level data directory
+    base_output_path : str or Path
+        Path to save data to
+    """
+
+    base_input_path = Path(base_input_path)
+    full_base_input_path = base_input_path.resolve()
+
+    base_output_path = Path(base_output_path)
+    full_base_output_path = base_output_path.resolve()
+
+    # Find all folders named "export" in the main input path
+    folder_list = [p for p in base_input_path.rglob("export") if p.is_dir()]
+
+    all_data = []
+
+    for folder in tqdm(folder_list, desc="Overall progress"):
+        # Get the folder path relative to the base_input_path
+        source_folder_relative = (
+            folder.resolve().relative_to(full_base_input_path).parent
+        )
+
+        output_path = full_base_output_path / source_folder_relative
+
+        data = process_files(
+            folder, output_path, save_data=False, exp_label=str(source_folder_relative)
+        )
+        all_data.append(data)
+
+    combined_ds = xr.concat(all_data, dim="id")
+    combined_ds.to_netcdf(output_path / "overall_results.nc")
+
+    # Convert to DataFrame and save
+    combined_df = combined_ds.to_dataframe()
+
+    # Reorder the columns
+    front = ["image", "dataset", "exp_label"]
+    remaining = [col for col in combined_df.columns if col not in front]
+
+    combined_df = combined_df[front + remaining]
+
+    combined_df.to_csv(base_output_path / "overall_results.csv", index=False)
+
+    # process_files(input_path, output_path, save_data=True)
 
 
+@deprecated("This function may no longer work. Use `process_directory()` instead.")
 def process_dataset(input_path, output_path):
     """
     Process all images in a directory.
@@ -116,7 +174,7 @@ def process_dataset(input_path, output_path):
                 counter += 1
 
 
-def process_files(input_path, output_path, save_data=True):
+def process_files(input_export_path, output_path, save_data=True, exp_label="auto"):
     """
     This function processes images from an experimental group. The function assumes that each image to be analyzed has a label which has been exported using QuPath, in the path "exp_dir/export".
 
@@ -144,34 +202,33 @@ def process_files(input_path, output_path, save_data=True):
         _description_
     """
 
-    # Note: Expect input_path to be the directory containing the QPPROJ file
+    input_export_path = Path(input_export_path)
 
-    if not isinstance(input_path, Path):
-        input_path = Path(input_path)
+    output_path = Path(output_path)
+    output_path.mkdir(exist_ok=True, parents=True)
 
-    if not isinstance(output_path, Path):
-        output_path = Path(output_path)
-
-    if not output_path.exists():
-        output_path.mkdir(parents=True)
-
-    # Look for the export directory
-    if not (input_path / "export").is_dir():
-        raise FileNotFoundError(
-            f"Could not find the 'export' directory in {input_path!s}"
-        )
+    # # Look for the export directory
+    # if not (input_path / "export").is_dir():
+    #     raise FileNotFoundError(
+    #         f"Could not find the 'export' directory in {input_path}"
+    #     )
 
     # Look for exported labels
-    label_list = list((input_path / "export").glob("*.png"))
+    label_list = list(input_export_path.glob("*.png"))
 
     if not label_list:
-        raise FileNotFoundError("Could not find any labels in the directory.")
+        raise FileNotFoundError(
+            f"Could not find any labels in the directory {input_export_path}."
+        )
 
-    # Get the QuPath project file
-    project_file = next(input_path.glob("*.qpproj"), None)
+    # Get the QuPath project file in the parent directory
+    input_export_path_parent = input_export_path.parent
+    project_file = next((input_export_path_parent).glob("*.qpproj"), None)
 
     if project_file is None:
-        raise FileNotFoundError("Could not find a QuPath project (.qpproj) file.")
+        raise FileNotFoundError(
+            f"Could not find a QuPath project (.qpproj) file in {input_export_path_parent}"
+        )
 
     image_uri = {}
     with open(project_file, "r", encoding="utf-8") as f:
@@ -216,10 +273,9 @@ def process_files(input_path, output_path, save_data=True):
             mask_dark_regions = image_lab[..., 0] < 30
 
             # Get the experiment label from the input path
-            input_directory_name = input_path.stem
-            exp_label = re.match(r"^(.+)\s\d{8}$", input_directory_name)
-            # print(exp_label.group(1))
-            # exit()
+            if exp_label == "auto":
+                input_directory_name = input_export_path.parent
+                exp_label = get_experiment_label(input_directory_name)
 
             # Initialize a dict of lists to store data from this image
             cell_data = {
@@ -314,11 +370,14 @@ def process_files(input_path, output_path, save_data=True):
                     k: (("id"), v) for k, v in cell_data.items() if k not in sorted_cols
                 },
                 coords={
-                    "dataset": ("id", [str(input_path.parent.name)] * num_cells),
-                    "image": ("id", [image_path] * num_cells),
                     "exp_label": (
                         "id",
-                        [get_experiment_label(input_path.stem)] * num_cells,
+                        [str(input_export_path_parent.name)] * num_cells,
+                    ),
+                    "image": ("id", [image_path] * num_cells),
+                    "dataset": (
+                        "id",
+                        [exp_label] * num_cells,
                     ),
                 },
             )

@@ -8,9 +8,9 @@ resolution-markers = [
 ]
 
 [[package]]
-name = "code"
-version = "0.1.0"
-source = { virtual = "." }
+name = "burton-lab-lugols-analysis"
+version = "0.3.0"
+source = { editable = "." }
 dependencies = [
     { name = "numpy" },
     { name = "scikit-image" },
