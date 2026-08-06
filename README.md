@@ -1,19 +1,31 @@
-# OIC-262 Colorimetric analysis of Lugol's staining
+# Burton lab - Lugol stain color analysis
 
 The goal of this project is to perform a color analysis of brightfield images of _C. elegans_ stained using Lugol's iodine solution. In particular, we are interested in quantifying the color change of the iodine stain in the oocytes with worms of different genotypes and grown in different media. 
 
 This repository contains both the methodology and code for the analysis.
 
-## Getting started
+## Usage
 
-These instructions assume that the images are collected and exported as TIFF files, with the same color profile and white balance applied. Additionally, you should ensure that all images are taken with the same staining protocol and illumination intensity. The images should brightfield color images.
+### Images
+
+The original dataset for this project were brightfield color images, collected using a
+dissecting microscope. The images should be saved as TIFF files, with the same color 
+profile and white balance applied. 
+
+Experimentally, it is important that all images are taken with the same staining 
+protocol and illumination intensity.
+
+Note that there are two different types of images: one set shows the developing oocytes
+in the germline. For these images, a manual marker is added during the annotation to
+indicate the first oocyte. The second set of images shows the developing embryos.
 
 ### Prerequisites
 
-The analysis relies on both QuPath for annotation and Python for measurement and analysis.
+The analysis relies on both QuPath for annotation and Python for measurement and 
+analysis.
 
 - [Python](https://www.python.org/downloads/) version 3.13.7 or higher
-- [QuPath](https://qupath.github.io/) version 0.6.0 - 0.7.0
+- [QuPath](https://qupath.github.io/) version 0.6.0 or higher
 
 ### Download code
 
@@ -25,102 +37,145 @@ The analysis relies on both QuPath for annotation and Python for measurement and
 
 ### Annotating the cells in QuPath
 
-Images should be separated into different folders for each experimental condition.
+#### Folder structure
 
-1. For each experimental condition, create a QuPath project in a subdirectory of the image folder. To keep it simple, I usually name the subfolder ``qupath``.
+#### Annotation methodology
+
+1. For each experimental condition, create a QuPath project in an empty directory.
 2. Click on **Add Images...** then click **Choose files** in the dialog box that opens up
 3. Select all the image files in the directory, then click **Open**
 4. In the **Set Image Type**, select **Brightfield (other)**
 5. Click **Import**
-6. (First time only) After the images have been imported, click on the **Annotations** tab.
-7. Select each class and click on the **-** button to remove it (Note: You cannot remove the ``None`` class)
-8. Click on the **+** symbol and add three classes named (spelling is critical):
-    - Cell
-    - Gray Patch
-    - Start
-9. Click on the **Project** tab, then double-click an image to open it.
-10. Annotate the cells using the Brush tool. You can find this tool on the toolbar or by pressing (B). Make sure you leave a small gap between each cell - this is critical for the Python script to identify individual cells.
-11. Use the Circle tool (O) draw a small circle close to the M-1 oocyte. The exact position is not very important - the Python script will label the oocytes based on position to this circle.
-12. Finally, going back to the Annotation tab, select the cell objects (CTRL + Click) then select **Cells** in the class list. Click on **Set Selected** to label the cells.
-13. Do the same of the circle, labelling it with **Start**.
-14. Repeat this process on all remaining images.
-15. When you are done, save and close the final image: **View** > **Multi-view** > **Close viewer**.
-16. To export the labels, select **Automate** > **Script Editor**. 
-17. In the dialog box, select **File** > **Open**, then select the file ``export_cell_mask.groovy`` from this repository.
-18. Click on **Run**  **Run for project**. This will export the labels into a folder called ``export`` under the ``qupath`` directory. 
-19. Copy all the label files to the same directory as the original images.
-20. Repeat for all experimental conditions.
+6. (First time only) Define the following classes in QuPath:
+   1. After the images have been imported, click on the **Annotations** tab. This only
+      needs to be done once as QuPath should remember these classes going forward.   
+   2. Select each class and click on the **-** button to remove it (Note: You cannot 
+      remove the ``None`` class)
+   3. Click on the **+** symbol and add the two classes named (spelling is critical):
+      - Cell
+      - Start
+7. Click on the **Project** tab, then double-click an image to open it.
+8. Annotate the cells using the Brush tool. You can find this tool on the toolbar or by
+   pressing (B). Make sure you leave a small gap between each cell - this is critical
+   for the Python script to identify individual cells.
+9. In the Annotation tab, select the cell objects (CTRL + Click) then select **Cells**
+   in the class list. Click on **Set Selected** to label the cells.
+9. For the germline images, use the Circle tool (O) draw a small circle **close to the
+   M-1 oocyte**. The exact position is not very important - the Python script will label
+   the oocytes based on relative positions to this circle.
+11. In the Annotation tab, select the circle object (CTRL + Click) then select **Start**
+   in the class list. Click on **Set Selected**.
+12. Repeat this process on all remaining images. When you are done, save and close the
+    final image: **View** > **Multi-view** > **Close viewer**.
 
-### Python setup
+#### Exporting the labels
 
-If running the code for the first time, you will need to create a Python virtual environment and install the necessary packages. 
+1. To export the labels, select **Automate** > **Script Editor**. 
+2. In the dialog box, select **File** > **Open**, then select the file
+   ``export_masks.groovy`` in the ``qupath_script`` subfolder from this repository.
+3. Click on **Run**  **Run for project**. 
+4. Add all images , then click **Run**. This will export the labels into a folder called
+   ``export`` directory. You can visualize the masks using QuPath or Fiji.
 
-1. Open a terminal and navigate to the directory where you unzipped the files.
+### Setup and installation of the Python script
 
-2. Create a python virtual environment
+#### Using uv (Recommended)
+
+This project uses [uv](https://docs.astral.sh/uv/) to manage virtual environments and dependencies. 
+
+1. Install ``uv``
+    * **macOS or Linux:** ``curl -LsSf https://astral.sh/uv/install.sh | sh``
+    * **Windows:** ``powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"``
+    
+    To check if you have ``uv`` installed, open a terminal and run ``uv --version``.
+
+2. Clone the repository
+   ```bash
+   git clone git@github.com:vaioic/burton-lab-lugols-analysis.git
+   cd burton-lab-lugols-analysis
+   ```
+
+3. Sync the environment (this will setup the correct virtual environment and dependencies)
+   ```bash
+   uv sync
+   ```
+
+4. Run the analysis
+   ```bash
+   uv run analysis/analysis_script.py
+   ```
+
+#### Using venv and pip
+
+1. Clone the repository
+   ```bash
+   git clone git@github.com:vaioic/burton-lab-lugols-analysis.git
+   cd burton-lab-lugols-analysis
+   ```
+
+2. Create a virtual environment
    ```bash
    python -m venv venv
    ```
 
-3. Activate the virtual environment
-   Windows:
+3. Activate the environment
    ```bash
-   .\venv\Scripts\activate
+   # macOS/Linux
+   source ./venv/bin/activate
+
+   # Windows (PowerShell)
+   .\venv\Scripts\Activate.ps1
    ```
-   
-   Linux:
+
+4. Install the repository as an editable module
    ```bash
-   source venv/scripts/activate
+   python -m pip install -e .
    ```
 
-4. Install the dependencies using Pip
+5. Run the analysis script
    ```bash
-   python -m pip install -r .\requirements.txt
+   python -m analysis.analysis_script
+
+   # or
+   python analysis/analysis_script.py
    ```
-
-### Running the code
-
-1. Start the virtual environment if not already loaded
-   ```bash
-   .\venv\Scripts\activate
-   ```
-
-2. Call ``analyze_color()`` to process images. 
-   ```python
-   main_folder = Path('D:\\Projects\\OIC-262\\data\\single_images')
-
-   analyze_color([
-        [main_folder / 'daf2 300 02112026_ mislabled as nduf7', 'daf2 300'],
-        [main_folder / 'daf2 con 1_20 02112026', 'daf2 con'],
-        [main_folder / 'gsy1 300mM 1_20 02112026', 'gsy1 300']
-        ], '..\\2026-03-03')
-   ```
-
-   The function takes in a list of paired strings - the first string is the path to the images and the second is a label that is used to group the data for subsequent plotting. The final argument is the path to the output folder.
-
-   As an alternative, you can also edit the lines under ``if __name__ == "__main__":`` to point to the correct directories and labels, then call ``analyze_color()`` without any arguments.
-
-### Analyzing the data
-
-The resulting data is stored as an xarray in netCDF format and as a CSV file. See [``analyze_data.py``](./analyze_data.py) for an example of a script to analyze the data.
 
 ## Issues
 
-If you encounter any issues with running the code or have any questions, please create an [Issue](https://github.com/vaioic/OIC-244/issues) or send an email to opticalimaging@vai.org. If you are reporting a programmatic bug, please include any error messages to aid with troubleshooting.
+If you encounter any issues with running the code or have any questions, please create an [Issue](https://github.com/vaioic/burton-lab-lugols-analysis/issues) or send an email to opticalimaging@vai.org. If you are reporting a bug, please include any error messages to aid with troubleshooting.
 
-## Acknowledgements
+## License
+
+This project is licensed under the GPLv3 License. See the [LICENSE](LICENSE) file for details.
+
+## Citing & Acknowledgements
+
+This repository is publicly available for open-source use, but it is developed and maintained by the Optical Imaging Core at the Van Andel Institute. If code from this repository contributed to data used in a publication, abstract, or presentation, please cite and acknowledge our work based on your affiliation:
+
+### For External Users
+Please cite this repository and acknowledge the author(s) in your publication's materials, methods, or acknowledgements section:
+> "Image analysis pipelines were adapted from open-source tools developed by the Optical Imaging Core at the Van Andel Institute (GitHub:[burton-lab-lugols-analysis](https://github.com/vaioic/burton-lab-lugols-analysis))."
+
+If you require custom adjustments or advanced analysis support, please contact us at opticalimaging@vai.org.
+
+### For Internal Users & Close Collaborators
+If you are an internal researcher or an external collaborator working directly with our staff, please include our Research Resource Identifier (RRID) in your materials and methods section:
+> "Image analysis and data processing were performed in collaboration with the Optical Imaging Core at the Van Andel Institute (RRID:SCR_021968)."
+
+Please review the Acknowledgement and Authorship Guidelines on [VAI's Core Technology and Services website](https://vanandelinstitute.sharepoint.com/sites/Cores/SitePages/Acknowledgements-and-Authorship.aspx)
 
 ### Contributors
-<a href="https://github.com/vaioic/OIC-262/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=vaioic/OIC-262" />
+<a href="https://github.com/vaioic/burton-lab-lugols-analysis/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=vaioic/burton-lab-lugols-analysis" />
 </a>
 
-### Dependencies
+## Changelog
 
-This project relies primarily on the following packages:
+## v1.0.0 (2026-08-06)
+* Updated the code to match latest standards
+* Moved the quantification code into the ``shared`` folder
+* Added analysis scripts for June 2026 dataset ([OIC-263](https://varioic.atlassian.net/browse/OIC-263))
 
-* xarray v2026.2.0
-* scikit-image v0.26.0
-* scikit-learn v1.8.0
-
-**Note:** For full dependency list, see [requirements.txt](requirements.txt).
+### v0.2.0 (2026-06-15)
+* Merged the oocyte and embryo analysis code
+  ([OIC-263](https://varioic.atlassian.net/browse/OIC-263))
