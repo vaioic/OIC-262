@@ -14,6 +14,8 @@ def labelServer = new LabeledImageServer.Builder(imageData)
     .backgroundLabel(0, ColorTools.BLACK) // Specify background label (usually 0 or 255)
      .downsample(downsample)    // Choose server resolution; this should match the resolution at which tiles are exported
     .addLabel('Embryo', 1)      // Choose output labels (the order matters!)
+    .addLabel('Cell', 1)      // Choose output labels (the order matters!)
+    .addLabel('Start', 3)      // Choose output labels (the order matters!)
     .grayscale()
     .multichannelOutput(false) // If true, each label refers to the channel of a multichannel binary image (required for multiclass probability)
     .build()

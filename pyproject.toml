@@ -9,6 +9,7 @@ license-files = ["LICENSE"]
 
 dependencies = [
     "numpy>=2.5.1",
+    "oic-toolkit",
     "scikit-image>=0.26.0",
     "scikit-learn>=1.9.0",
     "tqdm>=4.70.0",
@@ -22,3 +23,6 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 module-name = "shared"
 module-root = ""
+
+[tool.uv.sources]
+oic-toolkit = { path = "../../Toolboxes/oic-toolkit", editable = true }

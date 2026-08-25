@@ -21,14 +21,16 @@ import os
 import re
 from pathlib import Path
 
+from oic_toolkit import display
+
 os.environ["OPENBLAS_NUM_THREADS"] = "24"
 
 from warnings import deprecated
 
 import numpy as np
 import xarray as xr
-from skimage import color, io, measure
-from sklearn import cluster, metrics
+from skimage import color, io, measure, segmentation
+from sklearn import metrics
 from tqdm import tqdm
 
 
@@ -174,7 +176,9 @@ def process_dataset(input_path, output_path):
                 counter += 1
 
 
-def process_files(input_export_path, output_path, save_data=True, exp_label="auto"):
+def process_files(
+    input_export_path, output_path, save_data=True, exp_label="auto", cluster=False
+):
     """
     This function processes images from an experimental group. The function assumes that each image to be analyzed has a label which has been exported using QuPath, in the path "exp_dir/export".
 
@@ -185,7 +189,13 @@ def process_files(input_export_path, output_path, save_data=True, exp_label="aut
     output_path : str or Path
         Folder to save output (only used if save_data=True)
     save_data : bool, optional
-        If False, the data will be returned as a list. If True, a CSV_file containing the data will be saved instead, by default True.
+        If False, the data will be returned as a list. If True, a CSV_file containing
+        the data will be saved instead, by default True.
+    exp_label : str, optional
+        Sets the experiment label for the dataset. If set to "auto", the code determines
+        this using the parent directory name. By default, "auto".
+    cluster : bool, optional
+        If True, will include clustering of color values. By default, False.
 
     Returns
     -------
@@ -195,30 +205,23 @@ def process_files(input_export_path, output_path, save_data=True, exp_label="aut
     Raises
     ------
     FileNotFoundError
-        _description_
+        A label file was not found in the input directory.
     FileNotFoundError
-        _description_
-    FileNotFoundError
-        _description_
+        A QuPath project (*.qpproj) file was not found in the directory.
     """
 
+    # Validate the inputs
     input_export_path = Path(input_export_path)
 
     output_path = Path(output_path)
     output_path.mkdir(exist_ok=True, parents=True)
-
-    # # Look for the export directory
-    # if not (input_path / "export").is_dir():
-    #     raise FileNotFoundError(
-    #         f"Could not find the 'export' directory in {input_path}"
-    #     )
 
     # Look for exported labels
     label_list = list(input_export_path.glob("*.png"))
 
     if not label_list:
         raise FileNotFoundError(
-            f"Could not find any labels in the directory {input_export_path}."
+            f"Could not find any label files (*.png) in the directory {input_export_path}."
         )
 
     # Get the QuPath project file in the parent directory
@@ -230,6 +233,8 @@ def process_files(input_export_path, output_path, save_data=True, exp_label="aut
             f"Could not find a QuPath project (.qpproj) file in {input_export_path_parent}"
         )
 
+    # Read QuPath project and append the image files to a dictionary. The image file
+    # name is used as a key so it is easy to match with the label filename later.
     image_uri = {}
     with open(project_file, "r", encoding="utf-8") as f:
         project_data = json.load(f)
@@ -253,6 +258,9 @@ def process_files(input_export_path, output_path, save_data=True, exp_label="aut
 
             labels = io.imread(label_file)
 
+            if not np.any(labels > 0):
+                continue
+
             # Find the corresponding image file
             target_filename = (label_file.stem).split("-")[0]
             image_path = image_uri.get(target_filename)
@@ -269,8 +277,45 @@ def process_files(input_export_path, output_path, save_data=True, exp_label="aut
             image_hsv = color.rgb2hsv(image)
             image_lab = color.rgb2lab(image)
 
+            # Convert to grayscale (uses luminance equation)
+            image_gray = color.rgb2gray(image)
+
             # Find dark regions
             mask_dark_regions = image_lab[..., 0] < 30
+
+            # Get the start label if it exists (should be value = 3)
+            if 3 in labels:
+                measure_oocyte_position = True
+                start_label = measure.label(labels == 3)
+                start_props = measure.regionprops_table(
+                    start_label, properties=("centroid",)
+                )
+                start_centroid = np.array(
+                    [[start_props["centroid-0"][0], start_props["centroid-1"][0]]]
+                )
+
+                cell_props = measure.regionprops_table(
+                    cell_labels,
+                    properties=(
+                        "label",
+                        "centroid",
+                    ),
+                )
+                cell_centroids = np.column_stack(
+                    (cell_props["centroid-0"], cell_props["centroid-1"])
+                )
+
+                cell_distances = np.linalg.norm(cell_centroids - start_centroid, axis=1)
+                sorted_ranks = np.argsort(np.argsort(cell_distances))
+
+                label_to_position = {
+                    label: f"M-{rank}"
+                    for label, rank in zip(cell_props["label"], sorted_ranks)
+                }
+
+            else:
+                measure_oocyte_position = False
+                label_to_position = {}
 
             # Get the experiment label from the input path
             if exp_label == "auto":
@@ -282,22 +327,30 @@ def process_files(input_export_path, output_path, save_data=True, exp_label="aut
                 "cell_label": [],
                 "cell_area_pixels": [],
                 "cell_ratio_area_dark": [],
+                "mean_intensity": [],
                 "mean_hue": [],
                 "mean_saturation": [],
                 "mean_value": [],
                 "mean_lightness": [],
                 "mean_A": [],
                 "mean_B": [],
-                "kmeans_centroid1_L": [],
-                "kmeans_centroid1_A": [],
-                "kmeans_centroid1_B": [],
-                "kmeans_centroid2_L": [],
-                "kmeans_centroid2_A": [],
-                "kmeans_centroid2_B": [],
-                "centroid_distance": [],
-                "silhouette_score": [],
-                "calinski_harabasz_score": [],
             }
+
+            if measure_oocyte_position:
+                cell_data |= {"position": []}
+
+            if cluster:
+                cell_data |= {
+                    "kmeans_centroid1_L": [],
+                    "kmeans_centroid1_A": [],
+                    "kmeans_centroid1_B": [],
+                    "kmeans_centroid2_L": [],
+                    "kmeans_centroid2_A": [],
+                    "kmeans_centroid2_B": [],
+                    "centroid_distance": [],
+                    "silhouette_score": [],
+                    "calinski_harabasz_score": [],
+                }
 
             # Get a list of unique cell labels
             unique_labels = np.unique(cell_labels)
@@ -305,9 +358,27 @@ def process_files(input_export_path, output_path, save_data=True, exp_label="aut
 
             # num_cells = len(unique_labels)
 
+            # Save the dark region mask
+            overlay = display.overlay_mask(
+                image, mask_dark_regions, mask_color=(1.0, 0.0, 1.0)
+            )
+            overlay = segmentation.mark_boundaries(
+                overlay, cell_labels, mode="thick", color=(0, 1, 0)
+            )
+            overlay = (overlay * 255).astype(np.uint8)
+            fn = Path(image_path).stem
+            io.imsave(output_path / f"{fn}_dark_region.png", overlay)
+
             # Process each cell
             for idx, curr_label in enumerate(unique_labels):
                 cell_data["cell_label"].append(curr_label)
+
+                if measure_oocyte_position:
+                    position_str = label_to_position.get(curr_label, "NA")
+                    cell_data["position"].append(position_str)
+
+                gray_values = image_gray[cell_labels == curr_label]
+                cell_data["mean_intensity"].append(np.mean(gray_values))
 
                 # Get the HSV values for current cell. Data is N x 3 where N is the pixel
                 hsv_values = image_hsv[cell_labels == (curr_label)]
@@ -323,29 +394,30 @@ def process_files(input_export_path, output_path, save_data=True, exp_label="aut
                 cell_data["mean_A"].append(mean_LAB[1])
                 cell_data["mean_B"].append(mean_LAB[2])
 
-                # Calculate k-means clustering using the LAB color space. Input should be N x 3, where each row is data from a single pixel.
-                kmeans = cluster.KMeans(n_clusters=2, n_init="auto")
-                labels = kmeans.fit_predict(lab_values)
-                centers = kmeans.cluster_centers_
+                if cluster:
+                    # Calculate k-means clustering using the LAB color space. Input should be N x 3, where each row is data from a single pixel.
+                    kmeans = cluster.KMeans(n_clusters=2, n_init="auto")
+                    labels = kmeans.fit_predict(lab_values)
+                    centers = kmeans.cluster_centers_
 
-                cell_data["kmeans_centroid1_L"].append(centers[0, 0])
-                cell_data["kmeans_centroid1_A"].append(centers[0, 1])
-                cell_data["kmeans_centroid1_B"].append(centers[0, 2])
+                    cell_data["kmeans_centroid1_L"].append(centers[0, 0])
+                    cell_data["kmeans_centroid1_A"].append(centers[0, 1])
+                    cell_data["kmeans_centroid1_B"].append(centers[0, 2])
 
-                cell_data["kmeans_centroid2_L"].append(centers[0, 0])
-                cell_data["kmeans_centroid2_A"].append(centers[0, 1])
-                cell_data["kmeans_centroid2_B"].append(centers[0, 2])
+                    cell_data["kmeans_centroid2_L"].append(centers[0, 0])
+                    cell_data["kmeans_centroid2_A"].append(centers[0, 1])
+                    cell_data["kmeans_centroid2_B"].append(centers[0, 2])
 
-                cell_data["centroid_distance"].append(
-                    np.linalg.norm(centers[0, :] - centers[1, :])
-                )
+                    cell_data["centroid_distance"].append(
+                        np.linalg.norm(centers[0, :] - centers[1, :])
+                    )
 
-                cell_data["silhouette_score"].append(
-                    metrics.silhouette_score(lab_values, labels, sample_size=3000)
-                )
-                cell_data["calinski_harabasz_score"].append(
-                    metrics.calinski_harabasz_score(lab_values, labels)
-                )
+                    cell_data["silhouette_score"].append(
+                        metrics.silhouette_score(lab_values, labels, sample_size=3000)
+                    )
+                    cell_data["calinski_harabasz_score"].append(
+                        metrics.calinski_harabasz_score(lab_values, labels)
+                    )
 
                 # Calculate percentage of "dark" region vs cell area
                 num_pixels_dark_region = np.count_nonzero(
