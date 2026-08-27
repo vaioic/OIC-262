@@ -360,7 +360,7 @@ def process_files(
                 baseline_saturation = np.mean(tmp_sat[labels == 4])
 
                 tmp_val = image_hsv[..., 2]
-                baselinev_value = np.mean(tmp_val[labels == 4])
+                baseline_value = np.mean(tmp_val[labels == 4])
 
                 tmp_l = image_lab[..., 0]
                 baseline_lightness = np.mean(tmp_l[labels == 4])
@@ -425,13 +425,22 @@ def process_files(
 
             # num_cells = len(unique_labels)
 
-            # Save the dark region mask
+            # Save an overlay image as output
             overlay = display.overlay_mask(
                 image, mask_dark_regions, mask_color=(1.0, 0.0, 1.0)
             )
             overlay = segmentation.mark_boundaries(
                 overlay, cell_labels, mode="thick", color=(0, 1, 0)
             )
+
+            if measure_baseline:
+                overlay = segmentation.mark_boundaries(
+                    overlay, labels == 4, mode="thick", color=(0.7, 0.7, 0.7))
+
+            if measure_oocyte_position:
+                overlay = segmentation.mark_boundaries(
+                    overlay, start_label, mode="thick", color=(0, 1.0, 1.0))                
+
             overlay = (overlay * 255).astype(np.uint8)
             fn = Path(image_path).stem
             io.imsave(output_path / f"{fn}_dark_region.png", overlay)
@@ -578,7 +587,7 @@ def calculate_hue_difference(hue1, hue2):
 
     hue1 = hue1 * 360
     hue2 = hue2 * 360
-    
+
     diff = (hue1 - hue2 + 180) % 360 - 180
 
 if __name__ == "__main__":
