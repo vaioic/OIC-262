@@ -1,19 +1,16 @@
-"""
-LugolQuant provides utilities for the processing of images to obtain chromatic (color) information. This module was originally written to quantify color variations in brightfield images of Lugol-stained C. elegans.
+"""'
+Color analysis of RGB images.
 
-Returns
--------
-_type_
-    _description_
+LugolQuant provides utilities for the processing of images to obtain chromatic (color)
+information. This module was originally written to quantify color variations in
+brightfield images of Lugol-stained C. elegans.
 
-Raises
-------
-FileNotFoundError
-    _description_
-FileNotFoundError
-    _description_
-FileNotFoundError
-    _description_
+Please see the README.md for more details about expected file types and directory structure.
+
+Examples
+--------
+>>> from shared import lugolquant
+>>> lugolquant.process_directory(r"path/to/data", r"path/to/output")
 """
 
 import json
@@ -36,9 +33,14 @@ from tqdm import tqdm
 
 def process_directory(base_input_path, base_output_path):
     """
-    Process images in a directory.
+    Process image datasets from a base path.
 
-    The output of the function will return a single CSV-file with all measurements.
+    The function will identify and process all valid datasets in folders below the
+    ``base_input_path``. It is expected that each directory will contain a folder named
+    ``export`` that contains the exported masks from the images.
+
+    The function will call the ``process_files`` for the valid folder. The output of
+    this function is a single CSV-file with all measurements.
 
     Parameters
     ----------
@@ -48,6 +50,7 @@ def process_directory(base_input_path, base_output_path):
         Path to save data to
     """
 
+    # Validate the inputs
     base_input_path = Path(base_input_path)
     full_base_input_path = base_input_path.resolve()
 
@@ -57,25 +60,30 @@ def process_directory(base_input_path, base_output_path):
     # Find all folders named "export" in the main input path
     folder_list = [p for p in base_input_path.rglob("export") if p.is_dir()]
 
+    # Initialize a list to hold measured data
     all_data = []
 
     for folder in tqdm(folder_list, desc="Overall progress"):
-        # Get the folder path relative to the base_input_path
+        # Get the source and output folder paths relative to the base_input_path
         source_folder_relative = (
             folder.resolve().relative_to(full_base_input_path).parent
         )
-
         output_path = full_base_output_path / source_folder_relative
 
+        # Process the images in the folder
         data = process_files(
             folder, output_path, save_data=False, exp_label=str(source_folder_relative)
         )
+
+        # Store data in main list
         all_data.append(data)
 
+    # Combine all the data in an xarray dataset. This format is helpful for plotting in
+    # Python.
     combined_ds = xr.concat(all_data, dim="id")
     combined_ds.to_netcdf(output_path / "overall_results.nc")
 
-    # Convert to DataFrame and save
+    # Convert to a pandas DataFrame
     combined_df = combined_ds.to_dataframe()
 
     # Reorder the columns
@@ -85,8 +93,6 @@ def process_directory(base_input_path, base_output_path):
     combined_df = combined_df[front + remaining]
 
     combined_df.to_csv(base_output_path / "overall_results.csv", index=False)
-
-    # process_files(input_path, output_path, save_data=True)
 
 
 @deprecated("This function may no longer work. Use `process_directory()` instead.")
@@ -180,7 +186,29 @@ def process_files(
     input_export_path, output_path, save_data=True, exp_label="auto", cluster=False
 ):
     """
-    This function processes images from an experimental group. The function assumes that each image to be analyzed has a label which has been exported using QuPath, in the path "exp_dir/export".
+    Process all images in a directory.
+
+    This function processes images from an experimental group. The function assumes that
+    each image to be analyzed has labels which have been exported using QuPath, in the
+    path "exp_dir/export". Additionally, the function reads in the QuPath project
+    (QPPROJ) file in each directory to determine the original image path.
+
+    The expected labels are:
+      1 - Cells (oocytes or embryos)
+      3 - Start location (used in oocyte images to determine oocyte rank)
+      4 - Baseline (used to determine color baseline)
+
+    If the Start location is provided, the code will label oocyte position based on
+    distance to that location (i.e., the closest oocyte will be "M-1"). If a Baseline
+    region is provided, the code will also include a color and intensity differences to
+    the baseline. If these labels are missing, the function will only calculate the base
+    color metrics.
+
+    If the Cells label is missing, the function should skip the images entirely. This
+    way, the user can skip annotating the images that have issues (e.g., duplicated worms, out of focus, etc.).
+
+    The function creates an overlay image for each processed image showing the cell
+    outlines and the "dark regions".
 
     Parameters
     ----------
@@ -189,13 +217,14 @@ def process_files(
     output_path : str or Path
         Folder to save output (only used if save_data=True)
     save_data : bool, optional
-        If False, the data will be returned as a list. If True, a CSV_file containing
-        the data will be saved instead, by default True.
+        If True, a CSV_file containing the data will be saved in the ``output_path`` directory, by default True.
     exp_label : str, optional
         Sets the experiment label for the dataset. If set to "auto", the code determines
         this using the parent directory name. By default, "auto".
     cluster : bool, optional
-        If True, will include clustering of color values. By default, False.
+        If True, will include clustering of color values. This is an alternative method
+        to calculate the color statistics (e.g., cluster centers as mean color and the
+        silhouette or Calinski-Harabsz score gives a measure of variation). By default, False.
 
     Returns
     -------
@@ -258,7 +287,8 @@ def process_files(
 
             labels = io.imread(label_file)
 
-            if not np.any(labels > 0):
+            if 1 not in labels:
+                # If no cells present, skip image
                 continue
 
             # Find the corresponding image file
@@ -317,6 +347,30 @@ def process_files(
                 measure_oocyte_position = False
                 label_to_position = {}
 
+            # Set up baseline measurements if present
+            if 4 in labels:
+                measure_baseline = True
+
+                baseline_grayscale_intensity = np.mean(image_gray[labels == 4])
+
+                tmp_hue = image_hsv[..., 0]
+                baseline_hue = np.mean(tmp_hue[labels == 4])
+
+                tmp_sat = image_hsv[..., 1]
+                baseline_saturation = np.mean(tmp_sat[labels == 4])
+
+                tmp_val = image_hsv[..., 2]
+                baselinev_value = np.mean(tmp_val[labels == 4])
+
+                tmp_l = image_lab[..., 0]
+                baseline_lightness = np.mean(tmp_l[labels == 4])
+
+                tmp_a = image_lab[..., 1]
+                baseline_a_star = np.mean(tmp_a[labels == 4])
+
+                tmp_b = image_lab[..., 2]
+                baseline_b_star = np.mean(tmp_b[labels == 4])
+
             # Get the experiment label from the input path
             if exp_label == "auto":
                 input_directory_name = input_export_path.parent
@@ -338,6 +392,19 @@ def process_files(
 
             if measure_oocyte_position:
                 cell_data |= {"position": []}
+
+            if measure_baseline:
+                cell_data |= {
+                    "baseline_gray_intensity": [],
+                    "baseline_hue": [],
+                    "baseline_saturation": [],
+                    "baseline_value": [],
+                    "baseline_lightness": [],
+                    "baseline_astar": [],
+                    "baseline_bstar": [],
+                    "difference_hue": [],
+                    "ratio_gray_intensity": [],
+                }
 
             if cluster:
                 cell_data |= {
@@ -431,6 +498,23 @@ def process_files(
                     num_pixels_dark_region / np.count_nonzero(cell_labels == curr_label)
                 )
 
+                # Add baseline measurements
+
+                if measure_baseline:
+                    # Calculate hue difference
+                    hue_diff = calculate_hue_difference(baseline_hue, mean_HSV[0])
+
+                    cell_data["baseline_gray_intensity"].append(baseline_grayscale_intensity),
+                    cell_data["baseline_hue"].append(baseline_hue),
+                    cell_data["baseline_saturation"].append(baseline_saturation),
+                    cell_data["baseline_value"].append(baselinev_value),
+                    cell_data["baseline_lightness"].append(baseline_lightness),
+                    cell_data["baseline_astar"].append(baseline_a_star),
+                    cell_data["baseline_bstar"].append(baseline_b_star),
+                    cell_data["difference_hue"].append(hue_diff),
+                    cell_data["ratio_gray_intensity"].append(np.mean(gray_values)/baseline_grayscale_intensity),
+                }
+
             # Generate an xarray dataset
             num_cells = len(cell_data["cell_label"])
 
@@ -465,8 +549,7 @@ def process_files(
         combined_df = combined_ds.to_dataframe()
         combined_df.to_csv(output_path / "results.csv")
 
-    else:
-        return combined_ds
+    return combined_ds
 
 
 def get_experiment_label(input):
@@ -476,6 +559,19 @@ def get_experiment_label(input):
     if exp_label:
         return exp_label.group(1)
 
+def calculate_hue_difference(hue1, hue2):
+    """
+    Returns hue angle difference in degrees.
+
+    Parameters
+    ----------
+    hue1 : float
+        Hue 1 in degrees
+    hue2 : float
+        Hue 2 in degrees
+    """
+
+    diff = (hue1 - hue2 + 180) % 360 - 180
 
 if __name__ == "__main__":
     pass

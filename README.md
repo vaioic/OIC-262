@@ -171,6 +171,15 @@ Please review the Acknowledgement and Authorship Guidelines on [VAI's Core Techn
 
 ## Changelog
 
+## v0.2.1 (2026-08-27)
+* Added grayscale intensity
+* Added baseline/color comparison analysis
+* Updated the ``process_files`` function to export a CSV per file
+
+### v0.2.0 (2026-06-15)
+* Merged the oocyte and embryo analysis code
+  ([OIC-263](https://varioic.atlassian.net/browse/OIC-263))
+
 ## v1.0.0 (2026-08-06)
 * Updated the code to match latest standards
 * Moved the quantification code into the ``shared`` folder
@@ -178,6 +187,3 @@ Please review the Acknowledgement and Authorship Guidelines on [VAI's Core Techn
   ([OIC-263](https://varioic.atlassian.net/browse/OIC-263))
 * Changed the input to accept a more 
 
-### v0.2.0 (2026-06-15)
-* Merged the oocyte and embryo analysis code
-  ([OIC-263](https://varioic.atlassian.net/browse/OIC-263))
