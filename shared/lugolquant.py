@@ -566,11 +566,19 @@ def calculate_hue_difference(hue1, hue2):
     Parameters
     ----------
     hue1 : float
-        Hue 1 in degrees
+        Hue 1, normalized to 0 - 1
     hue2 : float
-        Hue 2 in degrees
+        Hue 2, normalized to 0 - 1
+
+    Returns
+    -------
+    diff : float
+        Difference in degrees
     """
 
+    hue1 = hue1 * 360
+    hue2 = hue2 * 360
+    
     diff = (hue1 - hue2 + 180) % 360 - 180
 
 if __name__ == "__main__":
