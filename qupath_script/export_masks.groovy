@@ -15,6 +15,7 @@ def labelServer = new LabeledImageServer.Builder(imageData)
      .downsample(downsample)    // Choose server resolution; this should match the resolution at which tiles are exported
     .addLabel('Embryo', 1)      
     .addLabel('Cell', 1)
+    .addLabel('Oocyte', 1)
     //.addLabel('Gray', 2)  //This is no longer used
     .addLabel('Start', 3)     
     .addLabel('Baseline', 4)

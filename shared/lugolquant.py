@@ -22,6 +22,7 @@ from oic_toolkit import display
 
 os.environ["OPENBLAS_NUM_THREADS"] = "24"
 
+import logging
 from warnings import deprecated
 
 import numpy as np
@@ -29,6 +30,14 @@ import xarray as xr
 from skimage import color, io, measure, segmentation
 from sklearn import metrics
 from tqdm import tqdm
+
+logging.basicConfig(
+    filename="error.log",
+    level=logging.ERROR,
+    format="%(asctime)s - %(name)s - %(message)s",
+)
+
+logger = logging.getLogger(__name__)
 
 
 def process_directory(base_input_path, base_output_path):
@@ -63,6 +72,8 @@ def process_directory(base_input_path, base_output_path):
     # Initialize a list to hold measured data
     all_data = []
 
+    # Set up
+
     for folder in tqdm(folder_list, desc="Overall progress"):
         # Get the source and output folder paths relative to the base_input_path
         source_folder_relative = (
@@ -71,12 +82,19 @@ def process_directory(base_input_path, base_output_path):
         output_path = full_base_output_path / source_folder_relative
 
         # Process the images in the folder
-        data = process_files(
-            folder, output_path, save_data=False, exp_label=str(source_folder_relative)
-        )
+        try:
+            data = process_files(
+                folder,
+                output_path,
+                save_data=True,
+                exp_label=str(source_folder_relative),
+            )
 
-        # Store data in main list
-        all_data.append(data)
+            # Store data in main list
+            all_data.append(data)
+        except Exception:
+            logger.error(f"Error processing file: {folder}, exc_info=True")
+            continue
 
     # Combine all the data in an xarray dataset. This format is helpful for plotting in
     # Python.
@@ -289,16 +307,23 @@ def process_files(
 
             if 1 not in labels:
                 # If no cells present, skip image
+                print(f"{label_file}:No cells found. Skipping")
                 continue
 
             # Find the corresponding image file
-            target_filename = (label_file.stem).split("-")[0]
+            target_filename = (label_file.stem).split("-labels")[0]
             image_path = image_uri.get(target_filename)
 
-            image = io.imread(image_path)
-            # plt.imshow(image)
-            # plt.show()
-            # exit()
+            # print(image_path)
+
+            if image_path is not None:
+                image = io.imread(image_path)
+            else:
+                print(
+                    f"ERROR: Could not find matching image for {label_file}. URI was None. Target: {target_filename}."
+                )
+                print(image_uri)
+                continue
 
             # Get the cell mask and re-label
             cell_labels, nCells = measure.label(labels == 1, return_num=True)
@@ -370,10 +395,12 @@ def process_files(
 
                 tmp_b = image_lab[..., 2]
                 baseline_b_star = np.mean(tmp_b[labels == 4])
+            else:
+                measure_baseline = False
 
             # Get the experiment label from the input path
             if exp_label == "auto":
-                input_directory_name = input_export_path.parent
+                input_directory_name = str(input_export_path.parent)
                 exp_label = get_experiment_label(input_directory_name)
 
             # Initialize a dict of lists to store data from this image
@@ -435,11 +462,13 @@ def process_files(
 
             if measure_baseline:
                 overlay = segmentation.mark_boundaries(
-                    overlay, labels == 4, mode="thick", color=(0.7, 0.7, 0.7))
+                    overlay, labels == 4, mode="thick", color=(0.7, 0.7, 0.7)
+                )
 
             if measure_oocyte_position:
                 overlay = segmentation.mark_boundaries(
-                    overlay, start_label, mode="thick", color=(0, 1.0, 1.0))                
+                    overlay, start_label, mode="thick", color=(0, 1.0, 1.0)
+                )
 
             overlay = (overlay * 255).astype(np.uint8)
             fn = Path(image_path).stem
@@ -513,16 +542,19 @@ def process_files(
                     # Calculate hue difference
                     hue_diff = calculate_hue_difference(baseline_hue, mean_HSV[0])
 
-                    cell_data["baseline_gray_intensity"].append(baseline_grayscale_intensity),
-                    cell_data["baseline_hue"].append(baseline_hue),
-                    cell_data["baseline_saturation"].append(baseline_saturation),
-                    cell_data["baseline_value"].append(baselinev_value),
-                    cell_data["baseline_lightness"].append(baseline_lightness),
-                    cell_data["baseline_astar"].append(baseline_a_star),
-                    cell_data["baseline_bstar"].append(baseline_b_star),
-                    cell_data["difference_hue"].append(hue_diff),
-                    cell_data["ratio_gray_intensity"].append(np.mean(gray_values)/baseline_grayscale_intensity),
-                }
+                    cell_data["baseline_gray_intensity"].append(
+                        baseline_grayscale_intensity
+                    )
+                    cell_data["baseline_hue"].append(baseline_hue)
+                    cell_data["baseline_saturation"].append(baseline_saturation)
+                    cell_data["baseline_value"].append(baseline_value)
+                    cell_data["baseline_lightness"].append(baseline_lightness)
+                    cell_data["baseline_astar"].append(baseline_a_star)
+                    cell_data["baseline_bstar"].append(baseline_b_star)
+                    cell_data["difference_hue"].append(hue_diff)
+                    cell_data["ratio_gray_intensity"].append(
+                        np.mean(gray_values) / baseline_grayscale_intensity
+                    )
 
             # Generate an xarray dataset
             num_cells = len(cell_data["cell_label"])
@@ -568,6 +600,7 @@ def get_experiment_label(input):
     if exp_label:
         return exp_label.group(1)
 
+
 def calculate_hue_difference(hue1, hue2):
     """
     Returns hue angle difference in degrees.
@@ -589,6 +622,9 @@ def calculate_hue_difference(hue1, hue2):
     hue2 = hue2 * 360
 
     diff = (hue1 - hue2 + 180) % 360 - 180
+
+    return diff
+
 
 if __name__ == "__main__":
     pass
